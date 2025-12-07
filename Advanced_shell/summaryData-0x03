@@ -1,0 +1,38 @@
+#!/bin/bash
+
+
+# Variables
+POKEMON_DIR="pokemon_data"
+CSV_FILE="pokemon_report.csv"
+
+
+# check whether the POKEMON_DIR directory exists or not
+if [[ ! -d "$POKEMON_DIR" ]]; then
+    echo "Error: $POKEMON_DIR directory not found!"
+    return 1
+fi
+
+# Write the CSV header
+echo "Name,Height (m),Weight (kg)" > "$CSV_FILE"
+
+for file in "$POKEMON_DIR"/*.json; do
+    name=$(jq -r '.name' "$file" | sed 's/.*/\u&/')
+    height=$(jq -r '.height' "$file")
+    weight=$(jq -r '.weight' "$file")
+
+    # Convert weight to kilogram and height to meter using awk
+    weight_kg= $(awk "BEGIN {printf \"%.0f\", $weight/10}")
+    height_m= $(awk "BEGIN {printf \"%.1f\", $height/10}")
+
+    echo "$name,$height_m,$weight_kg" >> "$CSV_FILE"
+
+done
+
+# Display CSV report location
+echo "CSV Report generated at: $CSV_FILE"
+
+# Show CSV contents
+cat "$CSV_FILE"
+
+# Calculate the averages using awk
+awk -F',' 'NR>1 {h+=$2; w+=$3; c++} END {if(c>0) printf "\nAverage Height: %.2f m\nAverage Weight: %.2f kg\n", h/c, w/c}' "$CSV_FILE"
