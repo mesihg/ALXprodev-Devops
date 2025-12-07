@@ -24,15 +24,16 @@ extract_pokeman_data() {
     fi
     
     # Convert weight to kilogram and height to meter using awk
-    local weight_kg= $(awk "BEGIN {printf \"%.0f\", $weight/10}")
-    local height_m= $(awk "BEGIN {printf \"%.1f\", $height/10}")
+    local formatted_weight= $(awk "BEGIN {printf \"%.0f\", $weight/10}")
+    local formatted_height= $(awk "BEGIN {printf \"%.1f\", $height/10}")
+
 
     # Capitalize the first letter of name and type using sed
     name=$(echo "$name" | sed 's/.*/\u&/')
     type=$(echo "$type" | sed 's/.*/\u&/')
 
     # Format the output using the required format
-    echo "$name is of type $type, weighs ${weight_kg}kg, and is ${height_m}m tall."
+    echo "$name is of type $type, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
 }
 
 extract_pokeman_data
