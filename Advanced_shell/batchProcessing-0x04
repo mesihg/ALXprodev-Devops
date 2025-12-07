@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# Variables
+POKEMON_LIST=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+API_BASE_URL="https://pokeapi.co/api/v2/pokemon/"
+ERROR_FILE="errors.txt"
+
+
+log_error() {
+    local error_message="$1"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] - ERROR: $error_message" >> "$ERROR_FILE"
+}
+
+
+fetch_data() {
+    local POKEMON_NAME="$1"
+    local API_URL="${API_BASE_URL}${POKEMON_NAME}"
+    local OUTPUT_FILE="${POKEMON_NAME}.json"
+    
+    echo "Processing ${POKEMON_NAME} in background..."
+    
+    local status_code
+    local response 
+    
+    # Make the curl request
+    response=$(curl -s -S -f -w "%{http_code}" "$API_URL" 2>/dev/null)
+    
+    status_code="${response: -3}"
+    response="${response%???}"
+
+    # Check the HTTP status code
+    if [ "$status_code" -eq 200 ]; then
+        echo "$response" > "$OUTPUT_FILE"
+        echo "${POKEMON_NAME} data saved to ${OUTPUT_FILE}"
+        return 0 
+    else
+        local error_message="Failed to fetch data for ${POKEMON_NAME}. HTTP Status Code: ${status_code}. URL: ${API_URL}"
+        log_error "${error_message}"
+        echo "FAILED: ${POKEMON_NAME} request failed with status ${status_code}."
+        rm -f "$OUTPUT_FILE"
+        return 1 
+    fi
+}
+
+
+# Clear the error file before starting
+: > "$ERROR_FILE"
+
+for name in "${POKEMON_LIST[@]}"; do
+    # Call the function in the background
+    fetch_data "$name" &
+done
+
+# Wait for all background jobs to finish
+echo "Waiting for all background jobs to complete..."
+wait
+
+echo "Check the current directory for .json files and ${ERROR_FILE} for errors."
