@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Variables
+INPUT_FILE="data.json"
+
+# Check whether the JSON file exists or not
+if [[ ! -f "$INPUT_FILE" ]]; then
+    echo "Error: $INPUT_FILE not found!"
+    exit 1
+fi
+
+extract_pokeman_data() {
+    local name height weight type
+
+    # Extract each fields with jq
+    name=$(jq -r '.name' "$INPUT_FILE" 2>/dev/null)
+    height=$(jq -r '.height' "$INPUT_FILE" 2>/dev/null)
+    weight=$(jq -r '.weight' "$INPUT_FILE" 2>/dev/null)
+    type=$(jq -r '.types[0].type.name' "$INPUT_FILE" 2>/dev/null)
+
+    if [[ $? -ne 0 ]] || [[ -z "$name" ]] || [[ -z "$height" ]] || [[ -z "$weight" ]] || [[ -z "$type" ]]; then
+        echo "Error: Failed to extract data from $INPUT_FILE"
+        return 1
+    fi
+    
+    # Convert weight to kilogram and height to meter using awk
+    local weight_kg= $(awk "BEGIN {printf \"%.0f\", $weight/10}")
+    local height_m= $(awk "BEGIN {printf \"%.1f\", $height/10}")
+
+    # Capitalize the first letter of name and type using sed
+    name=$(echo "$name" | sed 's/.*/\u&/')
+    type=$(echo "$type" | sed 's/.*/\u&/')
+
+    # Format the output using the required format
+    echo "$name is of type $type, weighs ${weight_kg}kg, and is ${height_m}m tall."
+}
+
+extract_pokeman_data
