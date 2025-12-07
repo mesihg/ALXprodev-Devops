@@ -1,17 +1,44 @@
 #!/bin/bash
 
+# Variables
 API_URL="https://pokeapi.co/api/v2/pokemon/Pikachu"
-
 OUTPUT_FILE="data.json"
 ERROR_FILE="errors.txt"
 
-# Make the API request
-response=$(curl -s -S -f -w "%{http_code}" "$API_URL" -o "$OUTPUT_FILE")
 
-# Check the HTTP status code
-if ["$response" -ne 200 ]; then
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - Request failed with status code: $response" >> "$ERROR_FILE"
-    echo "Error logged to $ERROR_FILE"
+# Log errors to errors.txt
+log_error() {
+    # $1: the message passed to the function
+    local error_message="$1"
+    # prepend with timestamp and append the error message to the error log file
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] - ERROR: $error_message" >> "$ERROR_FILE"
+}
+fetch_data() {
+    echo "Trying to fetch data for ${API_URL}..."
+    # Use curl to fetch the data
+    # -s: silent or quiet mode
+    # -S:  display error message
+    # -f:  fail on http errors
+    # -w: output the http status code
+    # -o:  output the recieved data to a file
+    local status_code
+    local response 
+    response=$(curl -s -S -f -w "%{http_code}" "$API_URL" 2>/dev/null)
+    status_code="${response: -3}" # Last 3 characters (the status code)
+    response="${response%???}"  # All the response except the last 3 characters
+
+    # Check the HTTP status code
+if ["$status_code" -eq 200 ]; then
+    echo "$response" > "$OUTPUT_FILE"
+    return 0
 else
-    echo "Data saved to $OUTPUT_FILE"
+    local error_message="Failed to fetch data. HTTP Status Code: ${response}. URL: ${API_URL}"
+    log_error "${error_message}"
+    return 1
 fi
+
+}
+# Make the API request
+fetch_data
+
+
