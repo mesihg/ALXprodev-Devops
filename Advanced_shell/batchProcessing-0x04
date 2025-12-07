@@ -11,6 +11,17 @@ log_error() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] - ERROR: $error_message" >> "$ERROR_FILE"
 }
 
+cleanup_process() {
+    local remaining_jobs=$(jobs -p)
+    if [[ -n "$remaining_jobs" ]]; then
+        echo "Terminating remaining background jobs..."
+        jobs -p | xargs -r kill 2>/dev/null  # Graceful kill (SIGTERM)
+        sleep 1
+        jobs -p | xargs -r kill -9 2>/dev/null # Force kill (SIGKILL)
+    fi
+    exit 0
+}
+
 
 fetch_data() {
     local POKEMON_NAME="$1"
@@ -41,7 +52,9 @@ fetch_data() {
         return 1 
     fi
 }
-
+# SET TRAP: Ensures cleanup_process runs on exit (0) or interruption (2)
+trap cleanup_process EXIT
+trap "exit 1" INT TERM # Exits gracefully upon interrupt (Ctrl+C) or termination signal
 
 # Clear the error file before starting
 : > "$ERROR_FILE"
